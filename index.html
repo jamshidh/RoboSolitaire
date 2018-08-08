@@ -1,0 +1,168 @@
+<html>
+  <head>
+    <style>
+      .card{
+        width: 100px;
+        position: absolute;
+      }
+      body {
+        background-color: green;
+        position: absolute;
+      }
+    </style>
+    <title>Robo Solitaire</title>
+  </head>
+  <body>
+    <script>
+      function moveTo(objects, t) {
+	  var slidey = {
+	      totalTime:t,
+	      current:0,
+	      items: objects.map(o => {
+		  if (parseFloat(o.image.style.top) != o.to.top && parseFloat(o.image.style.left) != o.to.left) o.image.style.zIndex = parseInt(o.image.style.zIndex) + 100;
+		  return {
+		      image:o.image,
+		      start:{top:parseFloat(o.image.style.top), left:parseFloat(o.image.style.left)},
+		      end:o.to,
+		  }
+	      }
+				)
+	  };
+
+      
+	  var slideSlice = 0.02;
+
+	  var interval = setInterval(function() {
+	      slidey.current = slidey.current + slideSlice;
+	      slidey.items.forEach(function(i) {
+		  var fraction = slideSlice/slidey.totalTime;
+
+		  var delta = {
+		      x:(i.end.left - i.start.left)*fraction,
+		      y:(i.end.top - i.start.top)*fraction
+		  }
+		  
+		  i.image.style.left = parseFloat(i.image.style.left)+delta.x+"px";
+		  i.image.style.top = parseFloat(i.image.style.top)+delta.y+"px";
+	      })
+	      if (slidey.current>= slidey.totalTime) {
+		  clearInterval(interval);
+		  objects.map(o => {
+		      if (o.to.z != undefined) o.image.style.zIndex = o.to.z;
+		  });
+	      }
+	  }, slideSlice)
+      
+      }
+
+      function shuffle(a) {
+	  for (let i = a.length - 1; i > 0; i--) {
+	      const j = Math.floor(Math.random() * (i + 1));
+	      [a[i], a[j]] = [a[j], a[i]];
+	  }
+	  return a;
+      }
+
+      var suitLeft = {"h": 0, "d":110, "c":220, "s":330};
+
+      function moveCardsToLocation() {
+	  var cardsToMove = [];
+	  deck.forEach(function(c, cardNum) {
+	      cardsToMove.push({image:c, to:{left:760, top:50, z:cardNum}});
+	  });
+
+	  waste.forEach(function(c, cardNum) {
+	      cardsToMove.push({image:c, to:{left:650, top:50, z:cardNum}});
+	  });
+
+	  ["h", "d", "c", "s"].forEach(function (suit) {
+	      ordered[suit].forEach(function(c, cardNum) {
+		  cardsToMove.push({image:c, to:{left:100+suitLeft[suit], top:50, z:cardNum}});
+	      });
+	  });
+	  
+	  piles.forEach(function(p, pileNum) {
+	      p.forEach(function(c, cardNum) {
+		  console.log("pileNum: " + pileNum + ", cardNum: " + cardNum);
+		  cardsToMove.push({image:c, to:{left:100+110*pileNum, top:200+30*cardNum, z:cardNum}});
+	      })
+	  });
+
+	  moveTo(cardsToMove, 2);
+      }
+
+      function move(from, to, number) {
+	  from.splice(from.length - number).forEach(c => to.push(c));
+//	  for(var i = 0; i < to.length; i++) to[i].style.zIndex = i;
+	  moveCardsToLocation();
+      }
+
+      var cards = {"s":[],"h":[],"d":[],"c":[]};
+      var deck = [];
+
+      ["h", "d", "c", "s"].forEach(function (suit) {
+	  for(v = 1; v < 14; v++) {
+	      cards[suit][v] = document.createElement("IMG");
+//	      cards[suit][v].setAttribute("src", "cards/"+v+suit+".png");
+	      cards[suit][v].setAttribute("src", "cards/Card_back_01.svg");
+	      cards[suit][v].setAttribute("width", "100");
+	      cards[suit][v].style.top = "0px";
+	      cards[suit][v].style.left = "0px";
+	      cards[suit][v].style.position= "absolute";
+	      cards[suit][v].setAttribute("alt", "The Pulpit Rock");
+	      cards[suit][v].suit = suit;
+	      document.body.appendChild(cards[suit][v]);
+	      deck.push(cards[suit][v]);
+	  }});
+
+
+      shuffle(deck);
+
+      
+      var piles = [[], [], [], [], [], [], []]
+      var waste = []
+      var ordered = {"h":[], "d":[], "c":[], "s":[]}
+
+      for(i=0; i < 7; i++)
+	  for(j = i; j < 7; j++) piles[j].push(deck.pop());
+
+      moveCardsToLocation();
+
+      function takeTurn(theMove) {
+	  if (theMove.action == "draw") {
+	      waste.push(deck.pop())
+	      return true;
+	  }
+	  else if (theMove.action == "order") {
+	      var theSuit = piles[theMove.pile][piles[theMove.pile].length-1].suit;
+	      console.log("card suit = " + theSuit);
+	      ordered[theSuit].push(piles[theMove.pile].pop());
+	      return true;
+	  } else {
+	      return false;
+	  }
+      }
+
+      function pressRunButton() {
+	  eval('var logic = ' + code.value);
+	  var theMove = logic.getMove();
+	  var result = takeTurn(theMove);
+	  moveCardsToLocation();
+	  console.log("valid move: " + result);
+	  console.log(theMove);
+      }
+
+    </script>
+
+    <textarea id="code" style="position: absolute; left: 100; top:600; height: 200; width:800">{
+  getMove: function() {
+    //return {action:"draw"};
+    return {action:"order", pile: 1};
+  }
+}
+</textarea>
+
+    <button onclick="pressRunButton()" style="position: absolute; left: 820; top:810; height: 40; width:80">Run</button>
+    
+  </body>
+</html>
